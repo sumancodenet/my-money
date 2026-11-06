@@ -9,6 +9,7 @@ import { ActivityLog } from './ActivityLog.js';
 import { Setting } from './Setting.js';
 import { RefreshToken } from './RefreshToken.js';
 import { WebauthnCredential } from './WebauthnCredential.js';
+import { sequelize } from '../config/database.js';
 
 // Associations
 User.hasMany(Account, { foreignKey: 'userId', onDelete: 'CASCADE' });
@@ -49,4 +50,4 @@ RefreshToken.belongsTo(User, { foreignKey: 'userId' });
 User.hasMany(WebauthnCredential, { foreignKey: 'userId', onDelete: 'CASCADE' });
 WebauthnCredential.belongsTo(User, { foreignKey: 'userId' });
 
-export { User, Account, Category, Transaction, Budget, FinancialGoal, Reminder, ActivityLog, Setting, RefreshToken, WebauthnCredential };
+export {sequelize, User, Account, Category, Transaction, Budget, FinancialGoal, Reminder, ActivityLog, Setting, RefreshToken, WebauthnCredential };
