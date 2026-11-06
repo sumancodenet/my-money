@@ -20,5 +20,8 @@ app.use((req, res, next) => { const s = Date.now(); res.setHeader('X-Start-Time'
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 2000, message: { success: false, message: 'Too many requests, try again later.' } }));
 app.use('/api/v1', routes);
 app.use(notFound);
+app.use((req, res) => {
+  res.status(404).json({ success: false, message: 'Route not found.' });
+});
 app.use(errorHandler);
 export default app;
