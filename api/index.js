@@ -1,5 +1,5 @@
 import 'mysql2';
-import app from '../src/app.js';
+import app from '../backend/src/app.js';
 import { sequelize } from '../backend/src/models/index.js';
 
 let dbReady = null;
