@@ -1,0 +1,12 @@
+import { Router } from 'express';
+import { monthlyReport, yearlyReport, bankWiseReport, categoryWiseReport, exportPdf, exportExcel } from '../controllers/reportController.js';
+import { protect } from '../middlewares/authMiddleware.js';
+const router = Router();
+router.use(protect);
+router.get('/monthly', monthlyReport);
+router.get('/yearly', yearlyReport);
+router.get('/bank-wise', bankWiseReport);
+router.get('/category-wise', categoryWiseReport);
+router.get('/export/pdf', exportPdf);
+router.get('/export/excel', exportExcel);
+export default router;

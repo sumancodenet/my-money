@@ -1,0 +1,21 @@
+import { Router } from 'express';
+import authRoutes from './auth.js';
+import accountRoutes from './accounts.js';
+import transactionRoutes from './transactions.js';
+import dashboardRoutes from './dashboard.js';
+import categoryRoutes from './categories.js';
+import budgetGoalRoutes from './budgetsGoals.js';
+import reportRoutes from './reports.js';
+import webauthnRoutes from './webauthn.js';
+
+const router = Router();
+router.get('/health', (req, res) => res.json({ success: true, message: 'My Money API healthy', data: { status: 'ok' } }));
+router.use('/auth', authRoutes);
+router.use('/webauthn', webauthnRoutes);
+router.use('/accounts', accountRoutes);
+router.use('/transactions', transactionRoutes);
+router.use('/dashboard', dashboardRoutes);
+router.use('/categories', categoryRoutes);
+router.use('/reports', reportRoutes);
+router.use('/', budgetGoalRoutes);
+export default router;

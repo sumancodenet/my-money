@@ -1,0 +1,15 @@
+import { Router } from 'express';
+import { listBudgets, upsertBudget, listGoals, createGoal, updateGoal, contributeGoal, listReminders, createReminder, toggleReminder } from '../controllers/budgetGoalController.js';
+import { protect } from '../middlewares/authMiddleware.js';
+const router = Router();
+router.use(protect);
+router.get('/budgets', listBudgets);
+router.post('/budgets', upsertBudget);
+router.get('/goals', listGoals);
+router.post('/goals', createGoal);
+router.patch('/goals/:id', updateGoal);
+router.post('/goals/:id/contribute', contributeGoal);
+router.get('/reminders', listReminders);
+router.post('/reminders', createReminder);
+router.patch('/reminders/:id/toggle', toggleReminder);
+export default router;

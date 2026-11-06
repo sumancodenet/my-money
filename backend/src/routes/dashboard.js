@@ -1,0 +1,10 @@
+import { Router } from 'express';
+import { getSummary, getIncomeExpense, getCategoryExpenses, getBankBalances } from '../controllers/dashboardController.js';
+import { protect } from '../middlewares/authMiddleware.js';
+const router = Router();
+router.use(protect);
+router.get('/summary', getSummary);
+router.get('/income-expense', getIncomeExpense);
+router.get('/category-expenses', getCategoryExpenses);
+router.get('/bank-balances', getBankBalances);
+export default router;
