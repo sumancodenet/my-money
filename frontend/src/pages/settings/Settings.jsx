@@ -4,7 +4,7 @@ import { Fingerprint, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { webauthnApi } from '../../services/api';
 import { startRegistration } from '@simplewebauthn/browser';
-import { supportsBiometric } from '../../utils/webauthn';
+import { supportsBiometric, biometricErrorMessage } from '../../utils/webauthn';
 import ConfirmModal from '../../components/common/ConfirmModal';
 
 export default function Settings() {
@@ -12,23 +12,24 @@ export default function Settings() {
   const [creds, setCreds] = useState([]);
   const [fpSupported, setFpSupported] = useState(false);
   const [pendingRemove, setPendingRemove] = useState(null);
+  const [registering, setRegistering] = useState(false);
 
   const load = () => webauthnApi.list().then(r => setCreds(r.data.data || [])).catch(() => {});
   useEffect(() => { load(); supportsBiometric().then(setFpSupported); }, []);
 
   const register = async () => {
-    if (!window.isSecureContext) return toast.error('Fingerprint requires HTTPS or localhost');
+    if (!window.isSecureContext) return toast.error('Fingerprint ke liye HTTPS ya localhost zaroori hai');
+    setRegistering(true);
     try {
       const { data } = await webauthnApi.registerOptions();
-      const options = { ...data.data };
-      const registration = await startRegistration({ optionsJSON: options });
+      const registration = await startRegistration({ optionsJSON: data.data });
       await webauthnApi.register({ ...registration, deviceName: navigator.platform || 'Device' });
-      toast.success('Fingerprint registered!');
+      toast.success('Fingerprint registered! Ab login page par fingerprint se sign in kar sakte ho.');
       load();
     } catch (err) {
-      if (err.name === 'NotAllowedError') toast.error('Registration cancelled');
-      else toast.error(err.response?.data?.message || 'Registration failed');
+      toast.error(biometricErrorMessage(err, 'Fingerprint registration failed'));
     }
+    finally { setRegistering(false); }
   };
 
   const remove = async (id) => { setPendingRemove(id); };
@@ -45,7 +46,7 @@ export default function Settings() {
           ) : (
             <>
               <p className="text-sm text-slate-500">Register your device fingerprint to sign in without password. Works with Windows Hello, Face ID, Touch ID and Android fingerprint.</p>
-              <button className="btn-primary mt-4" onClick={register}><Fingerprint size={16} /> Register Fingerprint</button>
+              <button className="btn-primary mt-4" disabled={registering} onClick={register}><Fingerprint size={16} /> {registering ? 'Waiting for fingerprint...' : 'Register Fingerprint'}</button>
             </>
           )}
           <div className="divide-y divide-slate-100 dark:divide-slate-800 mt-4">

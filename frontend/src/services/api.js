@@ -14,7 +14,7 @@ api.interceptors.response.use(
   (res) => res,
   async (err) => {
     const original = err.config;
-    if (err.response?.status === 401 && original && !original._retry && !original.url?.includes('/auth/') && !window.location.pathname.includes('/login')) {
+    if (err.response?.status === 401 && original && !original._retry && !original.url?.includes('/auth/') && !original.url?.includes('/webauthn/') && !window.location.pathname.includes('/login')) {
       original._retry = true;
       try {
         if (!refreshing) refreshing = api.post('/auth/refresh');
@@ -31,7 +31,7 @@ api.interceptors.response.use(
 );
 
 export const authApi = { login: (d) => api.post('/auth/login', d), logout: () => api.post('/auth/logout'), refresh: () => api.post('/auth/refresh'), profile: () => api.get('/auth/profile'), register: (d) => api.post('/auth/register', d) };
-export const webauthnApi = { registerOptions: () => api.get('/webauthn/register-options'), register: (d) => api.post('/webauthn/register', d), loginOptions: (email) => api.get(`/webauthn/login-options?email=${encodeURIComponent(email)}`), login: (d) => api.post('/webauthn/login', d), list: () => api.get('/webauthn/credentials'), remove: (id) => api.delete(`/webauthn/credentials/${id}`) };
+export const webauthnApi = { registerOptions: () => api.get('/webauthn/register-options'), register: (d) => api.post('/webauthn/register', d), loginOptions: (email) => api.get(email ? `/webauthn/login-options?email=${encodeURIComponent(email)}` : '/webauthn/login-options'), login: (d) => api.post('/webauthn/login', d), list: () => api.get('/webauthn/credentials'), remove: (id) => api.delete(`/webauthn/credentials/${id}`) };
 export const dashboardApi = { summary: () => api.get('/dashboard/summary'), incomeExpense: (days=30) => api.get(`/dashboard/income-expense?days=${days}`), categoryExpenses: () => api.get('/dashboard/category-expenses'), bankBalances: () => api.get('/dashboard/bank-balances') };
 export const accountApi = { list: () => api.get('/accounts'), create: (d) => api.post('/accounts', d), update: (id,d) => api.patch(`/accounts/${id}`, d), remove: (id) => api.delete(`/accounts/${id}`), archive: (id) => api.post(`/accounts/${id}/archive`), deposit: (id, d) => api.post(`/accounts/${id}/deposit`, d), withdraw: (id, d) => api.post(`/accounts/${id}/withdraw`, d) };
 export const txApi = { list: (p={}) => api.get('/transactions', { params: p }), create: (d) => api.post('/transactions', d), transfer: (d) => api.post('/transactions/transfer', d), reverse: (id) => api.post(`/transactions/${id}/reverse`), remove: (id) => api.delete(`/transactions/${id}`), statement: (accountId, params = {}) => api.get(`/transactions/statement?accountId=${accountId}`, { params }), transfers: (p={}) => api.get('/transactions/transfers', { params: p }) };

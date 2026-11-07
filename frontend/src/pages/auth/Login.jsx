@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { ArrowRight, ShieldCheck, Zap, Wallet, Fingerprint } from 'lucide-react';
 import { startAuthentication } from '@simplewebauthn/browser';
 import { webauthnApi } from '../../services/api';
-import { supportsBiometric } from '../../utils/webauthn';
+import { supportsBiometric, biometricErrorMessage } from '../../utils/webauthn';
 import { useEffect } from 'react';
 import logo from '../../logo/logo.png';
 
@@ -28,19 +28,20 @@ export default function Login() {
   };
 
   const fingerprintLogin = async () => {
-    if (!window.isSecureContext) return toast.error('Fingerprint requires HTTPS or localhost');
+    if (!window.isSecureContext) return toast.error('Fingerprint ke liye HTTPS ya localhost zaroori hai');
     setFpLoading(true);
     try {
-      const { data } = await webauthnApi.loginOptions(email);
-      const options = { ...data.data, challenge: data.data.challenge };
-      const assertion = await startAuthentication({ optionsJSON: options });
+      // Email khali ho to discoverable (passkey picker) flow — browser khud
+      // registered fingerprint dikhayega. Email ho to backend allowCredentials dega.
+      const hint = email?.trim().toLowerCase() || '';
+      const { data } = await webauthnApi.loginOptions(hint || undefined);
+      const assertion = await startAuthentication({ optionsJSON: data.data });
       const { data: res } = await webauthnApi.login(assertion);
       setUser(res.data.user);
       toast.success('Welcome back (fingerprint)!');
       navigate('/app/dashboard');
     } catch (err) {
-      if (err.name === 'NotAllowedError') toast.error('Fingerprint cancelled');
-      else toast.error(err.response?.data?.message || 'Fingerprint login failed. First register in Settings.');
+      toast.error(biometricErrorMessage(err, 'Fingerprint login failed. Pehle Settings me fingerprint register karo.'));
     }
     finally { setFpLoading(false); }
   };
