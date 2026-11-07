@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, Archive, Landmark, ChevronDown, ChevronUp, Eye, Search, Filter, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Archive, Landmark, ChevronDown, ChevronUp, Eye, Search, Filter, X, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { accountApi, txApi } from '../../services/api';
@@ -23,6 +23,9 @@ export default function Accounts() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [pendingDelete, setPendingDelete] = useState(null);
+  const [movement, setMovement] = useState(null); // { account, kind: 'Deposit' | 'Withdrawal' }
+  const [movementForm, setMovementForm] = useState({ amount: '', transactionDate: new Date().toISOString().slice(0, 10), description: '', referenceNumber: '', paymentMethod: 'Cash' });
+  const [movementSaving, setMovementSaving] = useState(false);
 
   const load = () => { setLoading(true); accountApi.list().then(r => setAccounts(r.data.data || [])).catch(() => toast.error('Failed to load')).finally(() => setLoading(false)); };
   useEffect(() => { load(); }, []);
@@ -34,6 +37,36 @@ export default function Accounts() {
       else await accountApi.create(form);
       toast.success('Saved'); setOpen(false); setEditing(null); setForm(blank); load();
     } catch (err) { toast.error(err.response?.data?.message || 'Save failed'); }
+  };
+
+  const openMovement = (a, kind) => {
+    setMovement({ account: a, kind });
+    setMovementForm({ amount: '', transactionDate: new Date().toISOString().slice(0, 10), description: '', referenceNumber: '', paymentMethod: 'Cash' });
+  };
+
+  const submitMovement = async (e) => {
+    e.preventDefault();
+    const { account, kind } = movement;
+    const payload = { amount: parseFloat(movementForm.amount), transactionDate: movementForm.transactionDate, description: movementForm.description || kind, referenceNumber: movementForm.referenceNumber || undefined, paymentMethod: movementForm.paymentMethod };
+    setMovementSaving(true);
+    try {
+      const res = kind === 'Deposit' ? await accountApi.deposit(account.id, payload) : await accountApi.withdraw(account.id, payload);
+      toast.success(`${kind} successful • New balance ${inr(res.data.data.currentBalance)}`);
+      setMovement(null);
+      // Expanded tx list stale na rahe — us bank ka cache clear karke dobara load karo
+      setBankTxs(s => { const n = { ...s }; delete n[account.id]; return n; });
+      load();
+      if (expandedId === account.id) {
+        setTxLoading(s => ({ ...s, [account.id]: true }));
+        try {
+          const { data } = await txApi.list({ accountId: account.id, limit: 20 });
+          setBankTxs(s => ({ ...s, [account.id]: data.data || [] }));
+        } catch { /* list dobara load hote hi sahi ho jayegi */ }
+        finally { setTxLoading(s => ({ ...s, [account.id]: false })); }
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || `${kind} failed`);
+    } finally { setMovementSaving(false); }
   };
 
   const filtered = accounts.filter(a => (!search || a.bankName.toLowerCase().includes(search.toLowerCase()) || (a.ifsc || '').toLowerCase().includes(search.toLowerCase())) && (!statusFilter || a.status === statusFilter));
@@ -96,6 +129,10 @@ export default function Accounts() {
                   <button className="btn-outline flex-1 py-2 text-xs" onClick={() => toggleExpand(a)}><Eye size={13} /> {expandedId === a.id ? 'Hide Tx' : 'View Tx'} <ChevronDown size={13} className={`transition ${expandedId === a.id ? 'rotate-180' : ''}`} /></button>
                   <Link to={`/app/transactions?accountId=${a.id}`} className="btn-outline flex-1 py-2 text-xs justify-center">Full List</Link>
                 </div>
+                <div className="flex gap-2 mt-2">
+                  <button className="flex-1 py-2 text-xs font-bold inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition disabled:opacity-50" disabled={a.status !== 'Active'} title={a.status !== 'Active' ? 'Only active accounts' : 'Deposit money into this bank'} onClick={() => openMovement(a, 'Deposit')}><ArrowDownToLine size={14} /> Deposit</button>
+                  <button className="flex-1 py-2 text-xs font-bold inline-flex items-center justify-center gap-1.5 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-500/20 transition disabled:opacity-50" disabled={a.status !== 'Active'} title={a.status !== 'Active' ? 'Only active accounts' : 'Withdraw money from this bank'} onClick={() => openMovement(a, 'Withdrawal')}><ArrowUpFromLine size={14} /> Withdraw</button>
+                </div>
                 {expandedId === a.id && (
                   <div className="mt-4 border-t border-slate-200 dark:border-slate-800 pt-4 fade-up">
                     <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">{a.bankName} Transactions</p>
@@ -104,7 +141,7 @@ export default function Accounts() {
                         {bankTxs[a.id].map(t => (
                           <div key={t.id} className="flex items-center justify-between gap-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-3 py-2.5 text-xs">
                             <div className="min-w-0"><p className="font-bold truncate">{t.Category?.name || t.type}</p><p className="text-slate-400 truncate">{dateStr(t.transactionDate)} • {t.description || '—'}</p></div>
-                            <span className={`font-extrabold whitespace-nowrap ${['Income','TransferIn'].includes(t.type) ? 'text-emerald-600' : 'text-red-600'}`}>{inr(t.amount)}</span>
+                            <span className={`font-extrabold whitespace-nowrap ${['Income','TransferIn','Deposit'].includes(t.type) ? 'text-emerald-600' : 'text-red-600'}`}>{inr(t.amount)}</span>
                           </div>
                         ))}
                       </div>
@@ -131,6 +168,24 @@ export default function Accounts() {
           <div className="sm:col-span-2"><label className="block text-xs font-bold mb-1.5">Account Color</label><input type="color" className="input h-10 p-1" value={form.accountColor} onChange={e => setForm({ ...form, accountColor: e.target.value })} /></div>
           <button className="btn-primary sm:col-span-2">Save Account</button>
         </form>
+      </Modal>
+
+      <Modal open={!!movement} onClose={() => setMovement(null)} title={movement ? `${movement.kind} — ${movement.account.bankName}` : ''}>
+        {movement && (
+          <form onSubmit={submitMovement} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 text-xs">
+              <span className="text-slate-500">Current balance: </span><span className="font-extrabold">{inr(movement.account.currentBalance)}</span>
+              <span className={`ml-2 font-semibold ${movement.kind === 'Deposit' ? 'text-emerald-600' : 'text-red-600'}`}>{movement.kind === 'Deposit' ? '↑ Balance badhega' : '↓ Balance ghatega'}</span>
+            </div>
+            <div className="sm:col-span-2"><label className="block text-xs font-bold mb-1.5">Amount (₹) <span className="text-red-500">*</span></label><input type="number" min="0.01" step="0.01" className="input" placeholder="Ex: 5000" value={movementForm.amount} onChange={e => setMovementForm(s => ({ ...s, amount: e.target.value }))} required autoFocus /></div>
+            <div><label className="block text-xs font-bold mb-1.5">Date <span className="text-red-500">*</span></label><input type="date" className="input" value={movementForm.transactionDate} onChange={e => setMovementForm(s => ({ ...s, transactionDate: e.target.value }))} required /></div>
+            <div><label className="block text-xs font-bold mb-1.5">Payment Method</label><select className="input" value={movementForm.paymentMethod} onChange={e => setMovementForm(s => ({ ...s, paymentMethod: e.target.value }))}><option>Cash</option><option>UPI</option><option>Card</option><option>Net Banking</option><option>Cheque</option><option>Other</option></select></div>
+            <div className="sm:col-span-2"><label className="block text-xs font-bold mb-1.5">Description</label><input className="input" placeholder={movement.kind === 'Deposit' ? 'Ex: Cash deposit' : 'Ex: ATM withdrawal'} value={movementForm.description} onChange={e => setMovementForm(s => ({ ...s, description: e.target.value }))} /></div>
+            <div className="sm:col-span-2"><label className="block text-xs font-bold mb-1.5">Reference Number</label><input className="input" placeholder="Ex: UTR / Ref (optional)" value={movementForm.referenceNumber} onChange={e => setMovementForm(s => ({ ...s, referenceNumber: e.target.value }))} /></div>
+            {movement.kind === 'Withdrawal' && parseFloat(movementForm.amount) > Number(movement.account.currentBalance || 0) && <p className="sm:col-span-2 text-xs font-semibold text-red-600">⚠️ Amount current balance ({inr(movement.account.currentBalance)}) se zyada hai — backend insufficient balance par reject kar dega (overdraft off ho to).</p>}
+            <button className={`sm:col-span-2 ${movement.kind === 'Deposit' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'} text-white font-bold py-2.5 px-4 rounded-xl inline-flex items-center justify-center gap-2 transition disabled:opacity-60`} disabled={movementSaving}>{movement.kind === 'Deposit' ? <ArrowDownToLine size={16} /> : <ArrowUpFromLine size={16} />}{movementSaving ? 'Processing...' : `${movement.kind} ${inr(movementForm.amount || 0)}`}</button>
+          </form>
+        )}
       </Modal>
 
       <ConfirmModal open={!!pendingDelete} onClose={() => setPendingDelete(null)} onConfirm={async () => { await accountApi.remove(pendingDelete.id); toast.success('Account deleted'); setPendingDelete(null); load(); }} title="Delete Account" message={`Are you sure you want to delete "${pendingDelete?.bankName}"? This cannot be undone.`} confirmText="Delete" />

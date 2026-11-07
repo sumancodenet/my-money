@@ -28,7 +28,7 @@ export const getSummary = asyncHandler(async (req, res) => {
     Budget.findOne({ where: { userId, month: monthKey }, raw: true }),
     sequelize.query(
       `SELECT a.id AS accountId, a.bankName, a.openingBalance,
-        COALESCE(SUM(CASE WHEN t.type IN ('Income','TransferIn','OpeningBalance','Adjustment') THEN t.amount ELSE -t.amount END), 0) AS net
+        COALESCE(SUM(CASE WHEN t.type IN ('Income','TransferIn','OpeningBalance','Adjustment','Deposit') THEN t.amount ELSE -t.amount END), 0) AS net
        FROM Accounts a LEFT JOIN Transactions t ON t.accountId = a.id AND t.status = 'Posted'
        WHERE a.userId = ? AND a.status = 'Active' GROUP BY a.id`,
       { replacements: [userId], type: sequelize.QueryTypes.SELECT }
@@ -87,7 +87,7 @@ export const getCategoryExpenses = asyncHandler(async (req, res) => {
 export const getBankBalances = asyncHandler(async (req, res) => {
   const rows = await sequelize.query(
     `SELECT a.id AS accountId, a.bankName, a.openingBalance,
-      COALESCE(SUM(CASE WHEN t.type IN ('Income','TransferIn','OpeningBalance','Adjustment') THEN t.amount ELSE -t.amount END), 0) AS net
+      COALESCE(SUM(CASE WHEN t.type IN ('Income','TransferIn','OpeningBalance','Adjustment','Deposit') THEN t.amount ELSE -t.amount END), 0) AS net
      FROM Accounts a LEFT JOIN Transactions t ON t.accountId = a.id AND t.status = 'Posted'
      WHERE a.userId = ? GROUP BY a.id`,
     { replacements: [req.user.id], type: sequelize.QueryTypes.SELECT }

@@ -13,3 +13,11 @@ export const transferValidator = [
   body('transferDate').optional().isDate(),
 ];
 export const idParamValidator = [param('id').isUUID()];
+export const movementValidator = [
+  param('id').isUUID(),
+  body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be greater than 0'),
+  body('transactionDate').optional().isDate(),
+  body('description').optional().isString(),
+  body('referenceNumber').optional().isString(),
+  body('paymentMethod').optional().isString(),
+];

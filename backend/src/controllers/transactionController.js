@@ -39,15 +39,15 @@ export const getTransaction = asyncHandler(async (req, res) => {
 });
 
 export const createTransaction = asyncHandler(async (req, res) => {
-  const type = req.body.type; // Income | Expense | Adjustment
-  if (!['Income', 'Expense', 'Adjustment'].includes(type)) throw new ApiError(400, 'Invalid type. Use Income/Expense/Adjustment.');
+  const type = req.body.type; // Income | Expense | Adjustment | Deposit | Withdrawal
+  if (!['Income', 'Expense', 'Adjustment', 'Deposit', 'Withdrawal'].includes(type)) throw new ApiError(400, 'Invalid type. Use Income/Expense/Adjustment/Deposit/Withdrawal.');
   const idKey = req.headers['x-idempotency-key'] || req.body.idempotencyKey;
   if (idKey) { const dup = await checkIdempotency(idKey); if (dup) throw new ApiError(409, 'Duplicate submission prevented.'); }
 
   const result = await sequelize.transaction(async (t) => {
     const { account, balance } = await getAccountBalance(req.body.accountId, { lock: true, t });
     if (account.userId !== req.user.id) throw new ApiError(403, 'Forbidden.');
-    if (type === 'Expense') assertSufficientBalance(balance, req.body.amount, account);
+    if (['Expense', 'Withdrawal'].includes(type)) assertSufficientBalance(balance, req.body.amount, account);
     return createTransactionWithLedger({
       userId: req.user.id, accountId: req.body.accountId, categoryId: req.body.categoryId,
       type, amount: req.body.amount, transactionDate: req.body.transactionDate || new Date().toISOString(),
@@ -93,7 +93,7 @@ export const reverseTransaction = asyncHandler(async (req, res) => {
       }
       return pair;
     }
-    const revTypeMap = { Income: 'Expense', Expense: 'Income', Adjustment: 'Adjustment' };
+    const revTypeMap = { Income: 'Expense', Expense: 'Income', Adjustment: 'Adjustment', Deposit: 'Withdrawal', Withdrawal: 'Deposit' };
     const rev = await createTransactionWithLedger({ userId: req.user.id, accountId: tx.accountId, type: revTypeMap[tx.type] || 'Adjustment', amount: tx.amount, transactionDate: req.body.reversalDate || dayjs().format('YYYY-MM-DD'), description: `Reversal of ${tx.id}`, referenceNumber: tx.referenceNumber, relatedTransactionId: tx.id }, t);
     await tx.update({ status: 'Reversed' }, { transaction: t });
     return rev;
@@ -129,8 +129,8 @@ export const getStatement = asyncHandler(async (req, res) => {
   let running = toNumber(account.openingBalance);
   const rows = txs.map(t => {
     const amt = toNumber(t.amount);
-    const credit = ['Income', 'TransferIn', 'OpeningBalance', 'Adjustment'].includes(t.type) ? amt : 0;
-    const debit = ['Expense', 'TransferOut'].includes(t.type) ? amt : 0;
+    const credit = ['Income', 'TransferIn', 'OpeningBalance', 'Adjustment', 'Deposit'].includes(t.type) ? amt : 0;
+    const debit = ['Expense', 'TransferOut', 'Withdrawal'].includes(t.type) ? amt : 0;
     running += credit - debit;
     return { ...t, credit, debit, runningBalance: Number(running.toFixed(2)), categoryName: t.CategoryName || t['Category.name'] || '—' };
   });

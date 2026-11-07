@@ -11,8 +11,8 @@ export const getAccountBalance = async (accountId, { lock = false, t = null } = 
   let balance = toNumber(account.openingBalance);
   for (const tx of txs) {
     const amt = toNumber(tx.amount);
-    if (['Income', 'TransferIn', 'OpeningBalance', 'Adjustment'].includes(tx.type)) balance += amt;
-    else if (['Expense', 'TransferOut'].includes(tx.type)) balance -= amt;
+    if (['Income', 'TransferIn', 'OpeningBalance', 'Adjustment', 'Deposit'].includes(tx.type)) balance += amt;
+    else if (['Expense', 'TransferOut', 'Withdrawal'].includes(tx.type)) balance -= amt;
   }
   return { account, balance };
 };

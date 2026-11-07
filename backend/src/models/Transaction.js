@@ -6,7 +6,7 @@ export const Transaction = sequelize.define('Transaction', {
   userId: { type: DataTypes.UUID, allowNull: false },
   accountId: { type: DataTypes.UUID, allowNull: false },
   categoryId: { type: DataTypes.UUID, allowNull: true },
-  type: { type: DataTypes.ENUM('Income', 'Expense', 'TransferIn', 'TransferOut', 'OpeningBalance', 'Adjustment'), allowNull: false },
+  type: { type: DataTypes.ENUM('Income', 'Expense', 'TransferIn', 'TransferOut', 'OpeningBalance', 'Adjustment', 'Deposit', 'Withdrawal'), allowNull: false },
   amount: { type: DataTypes.DECIMAL(15, 2), allowNull: false, validate: { min: 0.01 } },
   transactionDate: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
   description: { type: DataTypes.TEXT, allowNull: true },
