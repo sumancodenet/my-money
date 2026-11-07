@@ -5,6 +5,5 @@ logs/
 .DS_Store
 .vscode/
 .idea/
-package-lock.json
 src/uploads/*
 !src/uploads/.gitkeep
