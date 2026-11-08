@@ -3,13 +3,15 @@ import { listTransactions, getTransaction, createTransaction, createTransfer, re
 import { transactionValidator, transferValidator } from '../validators/transactionValidators.js';
 import { validate } from '../middlewares/validate.js';
 import { protect } from '../middlewares/authMiddleware.js';
+import { cacheable, invalidateUserCache } from '../middlewares/cache.js';
 
 const router = Router();
 router.use(protect);
-router.get('/', listTransactions);
-router.get('/income', (req, res, next) => { req.query.type = 'Income'; next(); }, listTransactions);
-router.get('/expense', (req, res, next) => { req.query.type = 'Expense'; next(); }, listTransactions);
-router.get('/transfers', async (req, res) => {
+router.use(invalidateUserCache);
+router.get('/', cacheable(30), listTransactions);
+router.get('/income', cacheable(30), (req, res, next) => { req.query.type = 'Income'; next(); }, listTransactions);
+router.get('/expense', cacheable(30), (req, res, next) => { req.query.type = 'Expense'; next(); }, listTransactions);
+router.get('/transfers', cacheable(30), async (req, res) => {
   const { Transaction } = await import('../models/index.js');
   const { Op } = await import('sequelize');
   const where = { userId: req.user.id, transferReferenceId: { [Op.ne]: null } };
@@ -23,8 +25,8 @@ router.get('/transfers', async (req, res) => {
   const txs = await Transaction.findAll({ where, order: [['transactionDate', 'DESC']] });
   res.json({ success: true, message: 'Transfers fetched', data: txs, pagination: null });
 });
-router.get('/statement', getStatement);
-router.get('/:id', getTransaction);
+router.get('/statement', cacheable(30), getStatement);
+router.get('/:id', cacheable(30), getTransaction);
 router.post('/', transactionValidator, validate, createTransaction);
 router.post('/transfer', transferValidator, validate, createTransfer);
 router.post('/:id/reverse', reverseTransaction);

@@ -18,13 +18,13 @@ export default function Settings() {
   useEffect(() => { load(); supportsBiometric().then(setFpSupported); }, []);
 
   const register = async () => {
-    if (!window.isSecureContext) return toast.error('Fingerprint ke liye HTTPS ya localhost zaroori hai');
+    if (!window.isSecureContext) return toast.error('Fingerprint requires HTTPS or localhost');
     setRegistering(true);
     try {
       const { data } = await webauthnApi.registerOptions();
       const registration = await startRegistration({ optionsJSON: data.data });
       await webauthnApi.register({ ...registration, deviceName: navigator.platform || 'Device' });
-      toast.success('Fingerprint registered! Ab login page par fingerprint se sign in kar sakte ho.');
+      toast.success('Fingerprint registered! You can now sign in with fingerprint on the login page.');
       load();
     } catch (err) {
       toast.error(biometricErrorMessage(err, 'Fingerprint registration failed'));

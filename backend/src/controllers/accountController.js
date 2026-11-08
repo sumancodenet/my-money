@@ -52,7 +52,7 @@ export const deleteAccount = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, 'Account deleted');
 });
 
-// Deposit (paisa bank me jama) / Withdrawal (paisa bank se nikala)
+// Deposit (money into bank) / Withdrawal (money out of bank)
 // POST /accounts/:id/deposit | POST /accounts/:id/withdraw
 // Body: { amount, transactionDate?, description?, referenceNumber?, paymentMethod? }
 const postAccountMovement = async (req, res, type) => {

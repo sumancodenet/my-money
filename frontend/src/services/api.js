@@ -7,9 +7,9 @@ api.interceptors.request.use((config) => {
   if (!config.headers['X-Idempotency-Key'] && config.method === 'post') {
     config.headers['X-Idempotency-Key'] = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   }
-  // Request tracking — button click par usi button me loader dikhane ke liye
-  // (ButtonLoaderTracker loaderStore.active dekhta hai, global overlay nahi)
-  // Background/silent call chahiye to { silent: true } pass karo: api.get('/x', { silent: true })
+  // Request tracking — shows a loader inside the clicked button only
+  // (ButtonLoaderTracker watches loaderStore.active, not a global overlay)
+  // For background/silent calls pass { silent: true }: api.get('/x', { silent: true })
   if (!config.silent) loaderStore.start();
   return config;
 });
@@ -17,7 +17,7 @@ api.interceptors.request.use((config) => {
 let refreshing = null;
 api.interceptors.response.use(
   (res) => {
-    // Silent calls loader counter me aate hi nahi — guard retried calls ke liye
+    // Silent calls never touch the loader counter — guard for retried calls
     if (!res.config?.silent) loaderStore.stop();
     return res;
   },

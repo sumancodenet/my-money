@@ -28,11 +28,11 @@ export default function Login() {
   };
 
   const fingerprintLogin = async () => {
-    if (!window.isSecureContext) return toast.error('Fingerprint ke liye HTTPS ya localhost zaroori hai');
+    if (!window.isSecureContext) return toast.error('Fingerprint requires HTTPS or localhost');
     setFpLoading(true);
     try {
-      // Email khali ho to discoverable (passkey picker) flow — browser khud
-      // registered fingerprint dikhayega. Email ho to backend allowCredentials dega.
+      // When email is empty, use the discoverable (passkey picker) flow — the browser
+      // itself shows registered fingerprints. When email is set, backend sends allowCredentials.
       const hint = email?.trim().toLowerCase() || '';
       const { data } = await webauthnApi.loginOptions(hint || undefined);
       const assertion = await startAuthentication({ optionsJSON: data.data });
@@ -41,7 +41,7 @@ export default function Login() {
       toast.success('Welcome back (fingerprint)!');
       navigate('/app/dashboard');
     } catch (err) {
-      toast.error(biometricErrorMessage(err, 'Fingerprint login failed. Pehle Settings me fingerprint register karo.'));
+      toast.error(biometricErrorMessage(err, 'Fingerprint login failed. Register your fingerprint in Settings first.'));
     }
     finally { setFpLoading(false); }
   };

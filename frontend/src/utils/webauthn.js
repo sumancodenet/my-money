@@ -1,21 +1,20 @@
-// Fingerprint / passkey button tab dikhana hai ya nahi — sirf WebAuthn API
-// ki maujoodgi check karo. Platform authenticator check ko button chhupane
-// ke liye use mat karo: kuch browsers me wo API hoti hi nahi, phir bhi
-// passkey (cloud / USB key) kaam kar sakta hai.
+// Whether to show the fingerprint / passkey button — only check WebAuthn API
+// availability. Do not use platform authenticator checks to hide the button:
+// some browsers lack that API entirely, yet passkeys (cloud / USB keys) still work.
 export const supportsBiometric = async () => {
   try {
-    if (!window.isSecureContext) return false; // HTTPS ya localhost zaroori hai
+    if (!window.isSecureContext) return false; // HTTPS or localhost required
     if (!navigator.credentials || typeof navigator.credentials.get !== 'function' || typeof navigator.credentials.create !== 'function') return false;
     if (typeof PublicKeyCredential === 'undefined') return false;
     return true;
   } catch { return false; }
 };
 
-// startRegistration / startAuthentication ke common errors ko user-friendly message do
+// User-friendly messages for common startRegistration / startAuthentication errors
 export const biometricErrorMessage = (err, fallback) => {
-  if (err?.name === 'NotAllowedError') return 'Fingerprint cancelled ya time khatam ho gaya. Dobara try karo.';
-  if (err?.name === 'InvalidStateError') return 'Ye fingerprint is device par pehle se registered hai. Settings se purana remove karke dobara try karo.';
-  if (err?.name === 'NotSupportedError') return 'Is browser/device par fingerprint supported nahi hai.';
-  if (err?.name === 'SecurityError') return 'Fingerprint ke liye HTTPS ya localhost zaroori hai.';
+  if (err?.name === 'NotAllowedError') return 'Fingerprint cancelled or timed out. Please try again.';
+  if (err?.name === 'InvalidStateError') return 'This fingerprint is already registered on this device. Remove the old one from Settings and try again.';
+  if (err?.name === 'NotSupportedError') return 'Fingerprint is not supported on this browser/device.';
+  if (err?.name === 'SecurityError') return 'Fingerprint requires HTTPS or localhost.';
   return err?.response?.data?.message || err?.message || fallback;
 };

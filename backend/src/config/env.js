@@ -16,9 +16,9 @@ export const env = {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   },
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
-  // WebAuthn: env OPTIONAL hai. Na set ho to controller request ke domain se
-  // khud RP_ID/ORIGIN bana leta hai (localhost dev + Vercel dono par chalega).
-  // Sirf tab set karo jab frontend aur backend alag-alag domain par hon.
+  // WebAuthn: env is OPTIONAL. If not set, the controller derives
+  // RP_ID/ORIGIN from the request domain itself (works on localhost dev and Vercel).
+  // Only set this when frontend and backend are on different domains.
   webauthn: {
     rpName: process.env.RP_NAME || 'MoneyFlow',
     rpId: process.env.RP_ID || null,

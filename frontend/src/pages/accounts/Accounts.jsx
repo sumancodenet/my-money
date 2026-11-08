@@ -53,7 +53,7 @@ export default function Accounts() {
       const res = kind === 'Deposit' ? await accountApi.deposit(account.id, payload) : await accountApi.withdraw(account.id, payload);
       toast.success(`${kind} successful • New balance ${inr(res.data.data.currentBalance)}`);
       setMovement(null);
-      // Expanded tx list stale na rahe — us bank ka cache clear karke dobara load karo
+      // Keep the expanded tx list fresh — clear that bank's cache and reload it
       setBankTxs(s => { const n = { ...s }; delete n[account.id]; return n; });
       load();
       if (expandedId === account.id) {
@@ -61,7 +61,7 @@ export default function Accounts() {
         try {
           const { data } = await txApi.list({ accountId: account.id, limit: 20 });
           setBankTxs(s => ({ ...s, [account.id]: data.data || [] }));
-        } catch { /* list dobara load hote hi sahi ho jayegi */ }
+        } catch { /* list will be correct once reloaded */ }
         finally { setTxLoading(s => ({ ...s, [account.id]: false })); }
       }
     } catch (err) {
@@ -175,14 +175,14 @@ export default function Accounts() {
           <form onSubmit={submitMovement} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 text-xs">
               <span className="text-slate-500">Current balance: </span><span className="font-extrabold">{inr(movement.account.currentBalance)}</span>
-              <span className={`ml-2 font-semibold ${movement.kind === 'Deposit' ? 'text-emerald-600' : 'text-red-600'}`}>{movement.kind === 'Deposit' ? '↑ Balance badhega' : '↓ Balance ghatega'}</span>
+              <span className={`ml-2 font-semibold ${movement.kind === 'Deposit' ? 'text-emerald-600' : 'text-red-600'}`}>{movement.kind === 'Deposit' ? '↑ Balance will increase' : '↓ Balance will decrease'}</span>
             </div>
             <div className="sm:col-span-2"><label className="block text-xs font-bold mb-1.5">Amount (₹) <span className="text-red-500">*</span></label><input type="number" min="0.01" step="0.01" className="input" placeholder="Ex: 5000" value={movementForm.amount} onChange={e => setMovementForm(s => ({ ...s, amount: e.target.value }))} required autoFocus /></div>
             <div><label className="block text-xs font-bold mb-1.5">Date <span className="text-red-500">*</span></label><input type="date" className="input" value={movementForm.transactionDate} onChange={e => setMovementForm(s => ({ ...s, transactionDate: e.target.value }))} required /></div>
             <div><label className="block text-xs font-bold mb-1.5">Payment Method</label><select className="input" value={movementForm.paymentMethod} onChange={e => setMovementForm(s => ({ ...s, paymentMethod: e.target.value }))}><option>Cash</option><option>UPI</option><option>Card</option><option>Net Banking</option><option>Cheque</option><option>Other</option></select></div>
             <div className="sm:col-span-2"><label className="block text-xs font-bold mb-1.5">Description</label><input className="input" placeholder={movement.kind === 'Deposit' ? 'Ex: Cash deposit' : 'Ex: ATM withdrawal'} value={movementForm.description} onChange={e => setMovementForm(s => ({ ...s, description: e.target.value }))} /></div>
             <div className="sm:col-span-2"><label className="block text-xs font-bold mb-1.5">Reference Number</label><input className="input" placeholder="Ex: UTR / Ref (optional)" value={movementForm.referenceNumber} onChange={e => setMovementForm(s => ({ ...s, referenceNumber: e.target.value }))} /></div>
-            {movement.kind === 'Withdrawal' && parseFloat(movementForm.amount) > Number(movement.account.currentBalance || 0) && <p className="sm:col-span-2 text-xs font-semibold text-red-600">⚠️ Amount current balance ({inr(movement.account.currentBalance)}) se zyada hai — backend insufficient balance par reject kar dega (overdraft off ho to).</p>}
+            {movement.kind === 'Withdrawal' && parseFloat(movementForm.amount) > Number(movement.account.currentBalance || 0) && <p className="sm:col-span-2 text-xs font-semibold text-red-600">⚠️ Amount is more than the current balance ({inr(movement.account.currentBalance)}) — the backend will reject it as insufficient balance (if overdraft is off).</p>}
             <button className={`sm:col-span-2 ${movement.kind === 'Deposit' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'} text-white font-bold py-2.5 px-4 rounded-xl inline-flex items-center justify-center gap-2 transition disabled:opacity-60`} disabled={movementSaving}>{movementSaving ? <Loader2 size={16} className="loader-spin" /> : movement.kind === 'Deposit' ? <ArrowDownToLine size={16} /> : <ArrowUpFromLine size={16} />}{movementSaving ? 'Processing…' : `${movement.kind} ${inr(movementForm.amount || 0)}`}</button>
           </form>
         )}

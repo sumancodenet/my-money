@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import { listCategories, createCategory, updateCategory, deleteCategory } from '../controllers/categoryController.js';
 import { protect } from '../middlewares/authMiddleware.js';
+import { cacheable, invalidateUserCache } from '../middlewares/cache.js';
 const router = Router();
 router.use(protect);
-router.get('/', listCategories);
+router.use(invalidateUserCache);
+router.get('/', cacheable(120), listCategories);
 router.post('/', createCategory);
 router.patch('/:id', updateCategory);
 router.delete('/:id', deleteCategory);

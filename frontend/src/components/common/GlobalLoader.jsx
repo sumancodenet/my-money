@@ -1,7 +1,7 @@
-// Deprecated: full-screen global loader ko button-level loader se replace kar diya gaya hai.
-// Ab loader har API par nahi, har button click par lagta hai — dekho ButtonLoader.jsx
-// (ButtonLoaderTracker). Ye component sirf backward-compat ke liye rakha hai.
-// InlineLoader / LoadingButton ka use ButtonLoader.jsx se karo.
+// Deprecated: full-screen global loader replaced by the button-level loader.
+// The loader now shows on button click instead of on every API call — see ButtonLoader.jsx
+// (ButtonLoaderTracker). This component is kept only for backward compatibility.
+// Use InlineLoader / LoadingButton from ButtonLoader.jsx instead.
 
 export default function GlobalLoader() {
   return null;

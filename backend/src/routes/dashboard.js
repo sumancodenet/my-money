@@ -1,10 +1,12 @@
 import { Router } from 'express';
 import { getSummary, getIncomeExpense, getCategoryExpenses, getBankBalances } from '../controllers/dashboardController.js';
 import { protect } from '../middlewares/authMiddleware.js';
+import { cacheable, invalidateUserCache } from '../middlewares/cache.js';
 const router = Router();
 router.use(protect);
-router.get('/summary', getSummary);
-router.get('/income-expense', getIncomeExpense);
-router.get('/category-expenses', getCategoryExpenses);
-router.get('/bank-balances', getBankBalances);
+router.use(invalidateUserCache);
+router.get('/summary', cacheable(30), getSummary);
+router.get('/income-expense', cacheable(30), getIncomeExpense);
+router.get('/category-expenses', cacheable(30), getCategoryExpenses);
+router.get('/bank-balances', cacheable(30), getBankBalances);
 export default router;

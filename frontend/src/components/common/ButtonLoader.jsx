@@ -3,28 +3,27 @@ import { Loader2 } from 'lucide-react';
 import { loaderStore } from '../../services/loaderStore';
 
 /**
- * Professional button-level loader — har button click par loader.
+ * Professional button-level loader — shows a loader on every button click.
  *
- * Kaam kaise karta hai:
- * - Background API calls (page load, filters auto-load) par koi loader nahi.
- * - Jab koi button click hota hai aur us click se API start hoti hai,
- *   to usi button ke andar spinner aa jata hai jab tak request complete na ho.
- * - Modal open / navigation / filter toggle jaise non-API buttons par loader nahi.
+ * How it works:
+ * - Background API calls (page load, filter auto-load) show no loader.
+ * - When a button is clicked and that click starts an API request,
+ *   a spinner appears inside the same button until the request completes.
+ * - Non-API buttons (modal open, navigation, filter toggle) show no loader.
  *
- * Opt-out: kisi button ko loader nahi chahiye to data-no-loader laga do:
+ * Opt-out: add data-no-loader to any button that should not show a loader:
  *   <button data-no-loader>...</button>
  *
- * Buttons jo khud apna loading state manage kar rahe hain (disabled + text
- * swap, e.g. Login/Register) un par yeh overlay nahi lagega — unke apne
- * spinner + text handle karte hain.
+ * Buttons that manage their own loading state (disabled + text swap,
+ * e.g. Login/Register) are skipped — their own spinner + text handles it.
  */
 
-const CLICK_CHECK_DELAY = 120; // ms — click ke baad API start hua ya nahi
-const HIDE_DEBOUNCE = 250; // ms — requests 0 stable rahne par hide (chained calls)
+const CLICK_CHECK_DELAY = 120; // ms — whether an API started after the click
+const HIDE_DEBOUNCE = 250; // ms — hide once requests stay at 0 (chained calls)
 
 export function ButtonLoaderTracker() {
   useEffect(() => {
-    const live = new Set(); // { button, unsub, timers } — cleanup ke liye
+    const live = new Set(); // { button, unsub, timers } — for cleanup
 
     const onClick = (e) => {
       if (!(e.target instanceof Element)) return;
@@ -34,9 +33,9 @@ export function ButtonLoaderTracker() {
       const before = loaderStore.getState().active;
 
       const checkTimer = setTimeout(() => {
-        // Button khud disable ho gaya → page apna loading state manage kar raha hai
+        // Button disabled itself → the page manages its own loading state
         if (btn.disabled) return;
-        // Click ke baad koi naya API start nahi hua → non-API action (modal/nav)
+        // No new API started after this click → non-API action (modal/nav)
         if (loaderStore.getState().active <= before) return;
 
         btn.classList.add('btn-auto-loading');
@@ -65,7 +64,7 @@ export function ButtonLoaderTracker() {
           }
         });
 
-        // Network hang safety — 30s baad auto cleanup
+        // Network hang safety — auto cleanup after 30s
         safetyTimer = setTimeout(cleanup, 30000);
       }, CLICK_CHECK_DELAY);
 
@@ -92,7 +91,7 @@ export function InlineLoader({ size = 16, className = '' }) {
 }
 
 /**
- * Reusable loading button — future pages ke liye.
+ * Reusable loading button — for future pages.
  * Usage: <LoadingButton loading={saving} onClick={save} className="btn-primary">Save</LoadingButton>
  */
 export function LoadingButton({ loading, loadingText = 'Loading…', children, className = '', disabled, ...props }) {

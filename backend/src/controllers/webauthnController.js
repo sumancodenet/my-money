@@ -14,15 +14,15 @@ import crypto from 'crypto';
 
 // @simplewebauthn/server v14 API:
 // - verifyRegistrationResponse -> { verified, registrationInfo: { credential: { id, publicKey, counter } } }
-//   (purana v10 style credentialID / credentialPublicKey ab nahi hai)
+//   (the old v10-style credentialID / credentialPublicKey no longer exists)
 // - verifyAuthenticationResponse -> { verified, authenticationInfo: { newCounter } }
-//   (purana verification.success field ab nahi hai, verified hai)
+//   (the old verification.success field no longer exists, it is `verified`)
 const RP_NAME = env.webauthn.rpName;
 
-// Bina env ke kaam kare — request ke domain se khud decide karo:
+// Works without env — decide automatically from the request domain:
 // - localhost dev: RP_ID=localhost, ORIGIN=http://localhost:5173 (vite frontend)
-// - Vercel/production (frontend+backend same domain): RP_ID/ORIGIN = request ka host
-// Env (RP_ID/ORIGIN) sirf override ke liye hai, zaroori nahi.
+// - Vercel/production (frontend+backend same domain): RP_ID/ORIGIN = request host
+// Env (RP_ID/ORIGIN) is only for overrides, not required.
 const getWebAuthnConfig = (req) => {
   if (env.webauthn.rpId && env.webauthn.origin) return { rpId: env.webauthn.rpId, origin: env.webauthn.origin };
   const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
@@ -40,14 +40,14 @@ const refreshOpts = { httpOnly: true, sameSite: 'lax', secure: env.nodeEnv === '
 const signToken = (user) => jwt.sign({ id: user.id }, env.jwt.secret, { expiresIn: '7d' });
 const hashToken = (t) => crypto.createHash('sha256').update(t).digest('hex');
 
-// Public key binary hai — TEXT column me raw store karne se corrupt ho jati thi.
-// Base64 string me store karo, verify se pehle wapas Uint8Array banao.
+// The public key is binary — it used to get corrupted when stored raw in a TEXT column.
+// Store as a Base64 string; convert back to Uint8Array before verifying.
 const encodePublicKey = (u8) => Buffer.from(u8).toString('base64');
 const decodePublicKey = (stored) => {
   if (!stored) return stored;
   if (stored instanceof Uint8Array) return new Uint8Array(stored);
   if (typeof stored === 'string') {
-    // Purana (corrupt-safe) format: "12,34,56,..." comma list
+    // Old (corruption-safe) format: "12,34,56,..." comma list
     if (/^\d+(,\d+)*$/.test(stored.trim())) return Uint8Array.from(stored.split(',').map(Number));
     return new Uint8Array(Buffer.from(stored, 'base64'));
   }
@@ -55,9 +55,9 @@ const decodePublicKey = (stored) => {
 };
 
 // In-memory challenges (Map: key -> { challenge, expires })
-// NOTE: Vercel serverless par har instance ka alag Map hota hai — options aur
-// verify aam taur par same warm instance par lagte hain. Multi-instance
-// production ke liye challenge ko DB/Redis me rakhna parega.
+// NOTE: On Vercel serverless each instance has a separate Map — options and
+// verify calls usually land on the same warm instance. For multi-instance
+// production, the challenge should live in DB/Redis instead.
 export const challenges = new Map();
 const challengeKey = (type, id) => `${type}:${id}`;
 const setChallenge = (type, id, challenge) => challenges.set(challengeKey(type, id), { challenge, expires: Date.now() + 10 * 60 * 1000 });
@@ -133,8 +133,8 @@ export const loginOptions = asyncHandler(async (req, res) => {
     user = await User.findOne({ where: { email } });
     if (user) {
       const creds = await WebauthnCredential.findAll({ where: { userId: user.id } });
-      // Email wale user ke credentials browser ko pehle se bata do — non-discoverable
-      // credentials (kuch Windows Hello setups) isi se kaam karte hain.
+      // Pre-tell the browser this user's credentials — non-discoverable
+      // credentials (some Windows Hello setups) rely on this.
       if (creds.length) allowCredentials = creds.map(c => ({ id: c.credentialId }));
     }
   }
@@ -143,8 +143,8 @@ export const loginOptions = asyncHandler(async (req, res) => {
     allowCredentials,
     userVerification: 'required',
   });
-  // Challenge dono keys par rakho — verify ke waqt credential ka owner maloom
-  // hone par sahi key se uth jayega (email galat/default ho to bhi kaam karega)
+  // Store the challenge under both keys — at verify time, once the credential
+  // owner is known, it is fetched with the right key (works even if email is wrong/default)
   setChallenge('login', 'anonymous', options.challenge);
   if (user) setChallenge('login', user.id, options.challenge);
   sendSuccess(res, 200, 'Login options', options);
@@ -170,7 +170,7 @@ export const loginVerify = asyncHandler(async (req, res) => {
       credential: { id: cred.credentialId, publicKey: decodePublicKey(cred.publicKey), counter: cred.counter || 0 },
     });
   } catch (e) { throw new ApiError(401, 'Fingerprint verification failed: ' + e.message); }
-  // v14 field: verified (purana success nahi) — iske baghair har login fail hota tha
+  // v14 field: verified (not the old success) — without this every login failed
   if (!verification.verified) throw new ApiError(401, 'Fingerprint verification failed');
   const newCounter = verification.authenticationInfo?.newCounter;
   if (typeof newCounter === 'number' && newCounter > 0) {

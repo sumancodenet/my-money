@@ -4,11 +4,13 @@ import { accountValidator } from '../validators/accountValidators.js';
 import { movementValidator } from '../validators/transactionValidators.js';
 import { validate } from '../middlewares/validate.js';
 import { protect } from '../middlewares/authMiddleware.js';
+import { cacheable, invalidateUserCache } from '../middlewares/cache.js';
 
 const router = Router();
 router.use(protect);
-router.get('/', listAccounts);
-router.get('/:id', getAccount);
+router.use(invalidateUserCache);
+router.get('/', cacheable(30), listAccounts);
+router.get('/:id', cacheable(30), getAccount);
 router.post('/', accountValidator, validate, createAccount);
 router.patch('/:id', updateAccount);
 router.delete('/:id/:archive?', deleteAccount);
