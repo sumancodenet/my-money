@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
-import { ArrowRight, ShieldCheck, Zap, Wallet, Fingerprint } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Zap, Wallet, Fingerprint, Loader2 } from 'lucide-react';
 import { startAuthentication } from '@simplewebauthn/browser';
 import { webauthnApi } from '../../services/api';
 import { supportsBiometric, biometricErrorMessage } from '../../utils/webauthn';
@@ -66,8 +66,8 @@ export default function Login() {
           <input type="email" className="input mb-4" value={email} onChange={e => setEmail(e.target.value)} required />
           <label className="block text-xs font-bold mb-1.5">Password <span className="text-red-500">*</span></label>
           <input type="password" className="input mb-6" value={password} onChange={e => setPassword(e.target.value)} required />
-          <button disabled={loading} className="btn-primary w-full py-3">{loading ? 'Signing in...' : <span className="flex items-center gap-2">Sign in <ArrowRight size={16} /></span>}</button>
-          {fpSupported && <button type="button" disabled={fpLoading} onClick={fingerprintLogin} className="mt-3 w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-violet-600 text-violet-700 dark:text-violet-300 font-bold text-sm hover:bg-violet-50 dark:hover:bg-violet-500/10 transition disabled:opacity-60"><Fingerprint size={18} /> {fpLoading ? 'Verifying...' : 'Sign in with Fingerprint'}</button>}
+          <button disabled={loading} className="btn-primary w-full py-3">{loading ? <span className="flex items-center gap-2 justify-center"><Loader2 size={16} className="loader-spin" /> Signing in…</span> : <span className="flex items-center justify-center gap-2">Sign in <ArrowRight size={16} /></span>}</button>
+          {fpSupported && <button type="button" disabled={fpLoading} onClick={fingerprintLogin} className="mt-3 w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-violet-600 text-violet-700 dark:text-violet-300 font-bold text-sm hover:bg-violet-50 dark:hover:bg-violet-500/10 transition disabled:opacity-60">{fpLoading ? <Loader2 size={18} className="loader-spin" /> : <Fingerprint size={18} />} {fpLoading ? 'Verifying…' : 'Sign in with Fingerprint'}</button>}
           <p className="text-sm text-slate-500 mt-5 text-center">New to My Money? <Link to="/register" className="font-bold text-violet-600 hover:underline">Create free account</Link></p>
         </form>
       </div>

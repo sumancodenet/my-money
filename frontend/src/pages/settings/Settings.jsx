@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Fingerprint, Trash2 } from 'lucide-react';
+import { Fingerprint, Trash2, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { webauthnApi } from '../../services/api';
 import { startRegistration } from '@simplewebauthn/browser';
@@ -46,7 +46,7 @@ export default function Settings() {
           ) : (
             <>
               <p className="text-sm text-slate-500">Register your device fingerprint to sign in without password. Works with Windows Hello, Face ID, Touch ID and Android fingerprint.</p>
-              <button className="btn-primary mt-4" disabled={registering} onClick={register}><Fingerprint size={16} /> {registering ? 'Waiting for fingerprint...' : 'Register Fingerprint'}</button>
+              <button className="btn-primary mt-4" disabled={registering} onClick={register}>{registering ? <Loader2 size={16} className="loader-spin" /> : <Fingerprint size={16} />} {registering ? 'Waiting for fingerprint…' : 'Register Fingerprint'}</button>
             </>
           )}
           <div className="divide-y divide-slate-100 dark:divide-slate-800 mt-4">

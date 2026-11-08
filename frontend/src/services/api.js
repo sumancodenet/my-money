@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { loaderStore } from './loaderStore';
 
 const api = axios.create({ baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1', withCredentials: true });
 
@@ -6,18 +7,27 @@ api.interceptors.request.use((config) => {
   if (!config.headers['X-Idempotency-Key'] && config.method === 'post') {
     config.headers['X-Idempotency-Key'] = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   }
+  // Request tracking — button click par usi button me loader dikhane ke liye
+  // (ButtonLoaderTracker loaderStore.active dekhta hai, global overlay nahi)
+  // Background/silent call chahiye to { silent: true } pass karo: api.get('/x', { silent: true })
+  if (!config.silent) loaderStore.start();
   return config;
 });
 
 let refreshing = null;
 api.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    // Silent calls loader counter me aate hi nahi — guard retried calls ke liye
+    if (!res.config?.silent) loaderStore.stop();
+    return res;
+  },
   async (err) => {
     const original = err.config;
+    if (!original?.silent) loaderStore.stop();
     if (err.response?.status === 401 && original && !original._retry && !original.url?.includes('/auth/') && !original.url?.includes('/webauthn/') && !window.location.pathname.includes('/login')) {
       original._retry = true;
       try {
-        if (!refreshing) refreshing = api.post('/auth/refresh');
+        if (!refreshing) refreshing = api.post('/auth/refresh', undefined, { silent: true });
         await refreshing;
         refreshing = null;
         return api(original);
@@ -30,7 +40,7 @@ api.interceptors.response.use(
   }
 );
 
-export const authApi = { login: (d) => api.post('/auth/login', d), logout: () => api.post('/auth/logout'), refresh: () => api.post('/auth/refresh'), profile: () => api.get('/auth/profile'), register: (d) => api.post('/auth/register', d) };
+export const authApi = { login: (d) => api.post('/auth/login', d), logout: () => api.post('/auth/logout'), refresh: () => api.post('/auth/refresh', undefined, { silent: true }), profile: () => api.get('/auth/profile'), register: (d) => api.post('/auth/register', d) };
 export const webauthnApi = { registerOptions: () => api.get('/webauthn/register-options'), register: (d) => api.post('/webauthn/register', d), loginOptions: (email) => api.get(email ? `/webauthn/login-options?email=${encodeURIComponent(email)}` : '/webauthn/login-options'), login: (d) => api.post('/webauthn/login', d), list: () => api.get('/webauthn/credentials'), remove: (id) => api.delete(`/webauthn/credentials/${id}`) };
 export const dashboardApi = { summary: () => api.get('/dashboard/summary'), incomeExpense: (days=30) => api.get(`/dashboard/income-expense?days=${days}`), categoryExpenses: () => api.get('/dashboard/category-expenses'), bankBalances: () => api.get('/dashboard/bank-balances') };
 export const accountApi = { list: () => api.get('/accounts'), create: (d) => api.post('/accounts', d), update: (id,d) => api.patch(`/accounts/${id}`, d), remove: (id) => api.delete(`/accounts/${id}`), archive: (id) => api.post(`/accounts/${id}/archive`), deposit: (id, d) => api.post(`/accounts/${id}/deposit`, d), withdraw: (id, d) => api.post(`/accounts/${id}/withdraw`, d) };

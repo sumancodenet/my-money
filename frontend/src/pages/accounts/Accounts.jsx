@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, Archive, Landmark, ChevronDown, ChevronUp, Eye, Search, Filter, X, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
+import { Plus, Pencil, Trash2, Archive, Landmark, ChevronDown, ChevronUp, Eye, Search, Filter, X, ArrowDownToLine, ArrowUpFromLine, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { accountApi, txApi } from '../../services/api';
@@ -183,7 +183,7 @@ export default function Accounts() {
             <div className="sm:col-span-2"><label className="block text-xs font-bold mb-1.5">Description</label><input className="input" placeholder={movement.kind === 'Deposit' ? 'Ex: Cash deposit' : 'Ex: ATM withdrawal'} value={movementForm.description} onChange={e => setMovementForm(s => ({ ...s, description: e.target.value }))} /></div>
             <div className="sm:col-span-2"><label className="block text-xs font-bold mb-1.5">Reference Number</label><input className="input" placeholder="Ex: UTR / Ref (optional)" value={movementForm.referenceNumber} onChange={e => setMovementForm(s => ({ ...s, referenceNumber: e.target.value }))} /></div>
             {movement.kind === 'Withdrawal' && parseFloat(movementForm.amount) > Number(movement.account.currentBalance || 0) && <p className="sm:col-span-2 text-xs font-semibold text-red-600">⚠️ Amount current balance ({inr(movement.account.currentBalance)}) se zyada hai — backend insufficient balance par reject kar dega (overdraft off ho to).</p>}
-            <button className={`sm:col-span-2 ${movement.kind === 'Deposit' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'} text-white font-bold py-2.5 px-4 rounded-xl inline-flex items-center justify-center gap-2 transition disabled:opacity-60`} disabled={movementSaving}>{movement.kind === 'Deposit' ? <ArrowDownToLine size={16} /> : <ArrowUpFromLine size={16} />}{movementSaving ? 'Processing...' : `${movement.kind} ${inr(movementForm.amount || 0)}`}</button>
+            <button className={`sm:col-span-2 ${movement.kind === 'Deposit' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'} text-white font-bold py-2.5 px-4 rounded-xl inline-flex items-center justify-center gap-2 transition disabled:opacity-60`} disabled={movementSaving}>{movementSaving ? <Loader2 size={16} className="loader-spin" /> : movement.kind === 'Deposit' ? <ArrowDownToLine size={16} /> : <ArrowUpFromLine size={16} />}{movementSaving ? 'Processing…' : `${movement.kind} ${inr(movementForm.amount || 0)}`}</button>
           </form>
         )}
       </Modal>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import { authApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import logo from '../../logo/logo.png';
@@ -44,7 +44,7 @@ export default function Register() {
           <input type="email" className="input mb-4" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required />
           <label className="block text-xs font-bold mb-1.5">Password <span className="text-red-500">*</span></label>
           <input type="password" className="input mb-6" placeholder="Minimum 6 characters" value={password} onChange={e => setPassword(e.target.value)} required />
-          <button disabled={loading} className="btn-primary w-full py-3">{loading ? 'Creating...' : <span className="flex items-center gap-2">Create Account <ArrowRight size={16} /></span>}</button>
+          <button disabled={loading} className="btn-primary w-full py-3">{loading ? <span className="flex items-center justify-center gap-2"><Loader2 size={16} className="loader-spin" /> Creating…</span> : <span className="flex items-center justify-center gap-2">Create Account <ArrowRight size={16} /></span>}</button>
           <p className="text-sm text-slate-500 mt-5 text-center">Already have an account? <Link to="/login" className="font-bold text-violet-600 hover:underline">Sign in</Link></p>
         </form>
       </div>
