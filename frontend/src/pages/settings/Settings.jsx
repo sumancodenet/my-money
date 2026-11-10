@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { webauthnApi } from '../../services/api';
 import { startRegistration } from '@simplewebauthn/browser';
 import { supportsBiometric, biometricErrorMessage } from '../../utils/webauthn';
+import { isAppLockEnabled, setAppLockEnabled } from '../../utils/appLock';
 import ConfirmModal from '../../components/common/ConfirmModal';
 
 export default function Settings() {
@@ -13,6 +14,7 @@ export default function Settings() {
   const [fpSupported, setFpSupported] = useState(false);
   const [pendingRemove, setPendingRemove] = useState(null);
   const [registering, setRegistering] = useState(false);
+  const [appLock, setAppLock] = useState(isAppLockEnabled());
 
   const load = () => webauthnApi.list().then(r => setCreds(r.data.data || [])).catch(() => {});
   useEffect(() => { load(); supportsBiometric().then(setFpSupported); }, []);
@@ -53,6 +55,12 @@ export default function Settings() {
             {creds.map(c => <div key={c.id} className="flex items-center justify-between py-3"><div className="flex items-center gap-3"><Fingerprint size={18} className="text-violet-600" /><div><p className="font-bold text-sm">{c.deviceName}</p><p className="text-xs text-slate-400 font-mono">{String(c.credentialId).slice(0,12)}…</p></div></div><button className="icon-btn w-8 h-8 hover:!bg-red-50 hover:!text-red-600" onClick={() => remove(c.id)}><Trash2 size={14} /></button></div>)}
             {creds.length === 0 && <p className="text-sm text-slate-400 py-3">No fingerprint registered yet.</p>}
           </div>
+          {creds.length > 0 && (
+            <label className="mt-4 flex items-center justify-between text-sm font-semibold border-t border-slate-100 dark:border-slate-800 pt-4">
+              <span className="flex items-center gap-2"><Fingerprint size={16} className="text-violet-600" /> Lock app on open (fingerprint)</span>
+              <input type="checkbox" className="h-4 w-4 accent-violet-600" checked={appLock} onChange={(e) => { setAppLock(e.target.checked); setAppLockEnabled(e.target.checked); }} />
+            </label>
+          )}
         </div></div>
       </div>
       <ConfirmModal open={!!pendingRemove} onClose={() => setPendingRemove(null)} onConfirm={async () => { await webauthnApi.remove(pendingRemove); toast.success('Removed'); setPendingRemove(null); load(); }} title="Remove Fingerprint" message="Are you sure you want to remove this fingerprint?" confirmText="Remove" />

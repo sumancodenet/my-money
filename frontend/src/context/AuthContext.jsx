@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { authApi } from '../services/api';
+import { clearUnlock } from '../utils/appLock';
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -27,7 +28,7 @@ export const AuthProvider = ({ children }) => {
     setUser(data.data.user);
     return data.data.user;
   };
-  const logout = async () => { await authApi.logout(); setUser(null); window.location.href = '/login'; };
+  const logout = async () => { await authApi.logout(); setUser(null); clearUnlock(); window.location.href = '/login'; };
 
   return <AuthContext.Provider value={{ user, loading, login, logout, setUser }}>{children}</AuthContext.Provider>;
 };

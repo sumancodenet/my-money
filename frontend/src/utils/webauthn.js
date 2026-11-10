@@ -1,3 +1,14 @@
+// Whether the app is running as an installed PWA (standalone)
+export const isStandalone = () => {
+  try {
+    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+    if (window.matchMedia && window.matchMedia('(display-mode: fullscreen)').matches) return true;
+    // iOS Safari
+    if (navigator.standalone === true) return true;
+    return false;
+  } catch { return false; }
+};
+
 // Whether to show the fingerprint / passkey button — only check WebAuthn API
 // availability. Do not use platform authenticator checks to hide the button:
 // some browsers lack that API entirely, yet passkeys (cloud / USB keys) still work.

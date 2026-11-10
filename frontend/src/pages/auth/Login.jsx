@@ -19,6 +19,17 @@ export default function Login() {
   const [fpSupported, setFpSupported] = useState(false);
   const { login, setUser } = useAuth();
   useEffect(() => { supportsBiometric().then(setFpSupported); }, []);
+  // Auto-trigger fingerprint login when supported and no credentials typed yet
+  // (behaves like PhonePe/Supermoney on app open, especially in installed PWA)
+  useEffect(() => {
+    if (!fpSupported) return;
+    if (email || password) return;
+    const t = setTimeout(() => {
+      fingerprintLogin().catch(() => {});
+    }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fpSupported]);
   const navigate = useNavigate();
 
   const submit = async (e) => {
