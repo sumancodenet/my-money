@@ -34,6 +34,31 @@ const getWebAuthnConfig = (req) => {
   return { rpId: hostname, origin: `${proto}://${host}` };
 };
 const ACCESS_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+const CHALLENGE_COOKIE = 'webauthn_challenge';
+const isProd = () => env.nodeEnv === 'production';
+
+// Stateless challenge storage via signed cookie — works on serverless (Vercel)
+// where in-memory Maps don't persist across instances.
+const signChallenge = (payload) => jwt.sign(payload, env.jwt.secret, { expiresIn: '5m' });
+const readChallengeCookie = (req) => {
+  try {
+    const token = req.cookies?.[CHALLENGE_COOKIE];
+    if (!token) return null;
+    return jwt.verify(token, env.jwt.secret);
+  } catch { return null; }
+};
+const setChallengeCookie = (res, payload) => {
+  res.cookie(CHALLENGE_COOKIE, signChallenge(payload), {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: isProd(),
+    path: '/',
+    maxAge: 5 * 60 * 1000,
+  });
+};
+const clearChallengeCookie = (res) => {
+  res.clearCookie(CHALLENGE_COOKIE, { httpOnly: true, sameSite: 'lax', secure: isProd(), path: '/' });
+};
 const REFRESH_MAX_AGE = 365 * 24 * 60 * 60 * 1000;
 const cookieOpts = { httpOnly: true, sameSite: 'lax', secure: env.nodeEnv === 'production', maxAge: ACCESS_MAX_AGE };
 const refreshOpts = { httpOnly: true, sameSite: 'lax', secure: env.nodeEnv === 'production', maxAge: REFRESH_MAX_AGE };
@@ -94,6 +119,7 @@ export const registerOptions = asyncHandler(async (req, res) => {
     authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
   });
   setChallenge('reg', user.id, options.challenge);
+  setChallengeCookie(res, { challenge: options.challenge, type: 'reg', userId: user.id });
   sendSuccess(res, 200, 'Registration options', options);
 });
 
@@ -101,8 +127,10 @@ export const registerVerify = asyncHandler(async (req, res) => {
   const { rpId: RP_ID, origin: ORIGIN } = getWebAuthnConfig(req);
   const user = await User.findByPk(req.user.id);
   if (!user) throw new ApiError(404, 'User not found.');
-  const expected = getChallenge('reg', user.id);
+  const cookieData = readChallengeCookie(req);
+  const expected = (cookieData?.type === 'reg' && cookieData?.userId === user.id ? cookieData.challenge : null) || getChallenge('reg', user.id);
   if (!expected) throw new ApiError(400, 'Challenge expired. Please try again.');
+  clearChallengeCookie(res);
   let verification;
   try {
     verification = await verifyRegistrationResponse({ response: req.body, expectedChallenge: expected, expectedOrigin: ORIGIN, expectedRPID: RP_ID });
@@ -147,6 +175,7 @@ export const loginOptions = asyncHandler(async (req, res) => {
   // owner is known, it is fetched with the right key (works even if email is wrong/default)
   setChallenge('login', 'anonymous', options.challenge);
   if (user) setChallenge('login', user.id, options.challenge);
+  setChallengeCookie(res, { challenge: options.challenge, type: 'login', email: email || null });
   sendSuccess(res, 200, 'Login options', options);
 });
 
@@ -158,7 +187,9 @@ export const loginVerify = asyncHandler(async (req, res) => {
   if (!cred) throw new ApiError(400, 'Fingerprint not registered for this device. Please register it in Settings first.');
   const user = await User.findByPk(cred.userId);
   if (!user) throw new ApiError(404, 'User not found.');
-  const expected = getChallenge('login', user.id) || getChallenge('login', 'anonymous');
+  const cookieData = readChallengeCookie(req);
+  const expected = (cookieData?.type === 'login' ? cookieData.challenge : null) || getChallenge('login', user.id) || getChallenge('login', 'anonymous');
+  clearChallengeCookie(res);
   if (!expected) throw new ApiError(400, 'Challenge expired. Please try again.');
   let verification;
   try {

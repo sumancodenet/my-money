@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Fingerprint, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
@@ -17,6 +17,7 @@ export default function AppLock({ children }) {
   const [unlocked, setUnlockedState] = useState(isUnlocked());
   const [loading, setLoading] = useState(false);
   const [creds, setCreds] = useState([]);
+  const unlockingRef = useRef(false);
   const [credsLoaded, setCredsLoaded] = useState(false);
 
   useEffect(() => { supportsBiometric().then(setSupported); }, []);
@@ -35,7 +36,8 @@ export default function AppLock({ children }) {
     }
   }, [creds, credsLoaded, enabled]);
 
-  const unlock = async () => {
+  const unlock = async (silent = false) => {
+    if (unlockingRef.current) return;
     if (!user?.email) return;
     if (credsLoaded && creds.length === 0) {
       toast.error('No fingerprint registered on this device. Register one in Settings.');
@@ -45,6 +47,7 @@ export default function AppLock({ children }) {
       setUnlockedState(true);
       return;
     }
+    unlockingRef.current = true;
     setLoading(true);
     try {
       const { data } = await webauthnApi.loginOptions(user.email);
@@ -55,8 +58,9 @@ export default function AppLock({ children }) {
       setUnlockedState(true);
       toast.success('Unlocked');
     } catch (err) {
-      toast.error(biometricErrorMessage(err, 'Fingerprint unlock failed.'));
+      if (!silent) toast.error(biometricErrorMessage(err, 'Fingerprint unlock failed.'));
     } finally {
+      unlockingRef.current = false;
       setLoading(false);
     }
   };
@@ -64,7 +68,7 @@ export default function AppLock({ children }) {
   // Auto-trigger once when locked
   useEffect(() => {
     if (!enabled || unlocked || !supported || !user) return;
-    const t = setTimeout(() => { unlock(); }, 300);
+    const t = setTimeout(() => { unlock(true); }, 800);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, unlocked, supported, user]);
