@@ -49,6 +49,7 @@ export default function PayModal({ open, onClose }) {
   const [step, setStep] = useState('scan'); // scan | amount | pay | confirm | expense
   const [upi, setUpi] = useState(null);
   const [amount, setAmount] = useState('');
+  const [manualUpi, setManualUpi] = useState('');
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState('');
   const [accounts, setAccounts] = useState([]);
@@ -57,6 +58,7 @@ export default function PayModal({ open, onClose }) {
   const [saving, setSaving] = useState(false);
   const [awaitingReturn, setAwaitingReturn] = useState(false);
   const scannerRef = useRef(null);
+  const startedRef = useRef(false);
   const readerId = 'pay-qr-reader';
 
   useEffect(() => {
@@ -64,6 +66,7 @@ export default function PayModal({ open, onClose }) {
       setStep('scan');
       setUpi(null);
       setAmount('');
+      setManualUpi('');
       setError('');
       setAwaitingReturn(false);
       accountApi.list().then(r => setAccounts(r.data.data || [])).catch(() => {});
@@ -81,24 +84,28 @@ export default function PayModal({ open, onClose }) {
       try { scannerRef.current.clear(); } catch {}
       scannerRef.current = null;
     }
+    startedRef.current = false;
     setScanning(false);
   };
 
   const startScanner = async () => {
+    if (startedRef.current) return;
     setError('');
     setScanning(true);
+    startedRef.current = true;
     try {
       const scanner = new Html5Qrcode(readerId);
       scannerRef.current = scanner;
       await scanner.start(
         { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 240, height: 240 } },
+        { fps: 12, qrbox: { width: 220, height: 220 }, aspectRatio: 1.0 },
         async (decoded) => {
+          if (!startedRef.current) return;
+          startedRef.current = false;
           await stopScanner();
           const parsed = parseUpi(decoded);
           if (!parsed) {
-            setError('Not a valid UPI QR code. Please scan a payment QR.');
-            setStep('scan');
+            setError('Not a valid UPI QR code. Try again or enter UPI ID manually.');
             return;
           }
           setUpi(parsed);
@@ -113,8 +120,9 @@ export default function PayModal({ open, onClose }) {
         () => {}
       );
     } catch (e) {
+      startedRef.current = false;
       setScanning(false);
-      setError('Camera access denied or unavailable. Please allow camera permission.');
+      setError('Camera unavailable. Enter UPI ID manually below.');
     }
   };
 
@@ -126,6 +134,21 @@ export default function PayModal({ open, onClose }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, step]);
+
+  const submitManualUpi = () => {
+    const parsed = parseUpi(manualUpi.trim().startsWith('upi:') ? manualUpi.trim() : `upi://pay?pa=${encodeURIComponent(manualUpi.trim())}`);
+    if (!parsed) {
+      // treat as raw UPI id
+      if (!manualUpi.includes('@')) { toast.error('Enter a valid UPI ID (e.g. name@bank)'); return; }
+      const u = { pa: manualUpi.trim(), pn: manualUpi.trim(), am: '', cu: 'INR', tn: 'UPI Payment' };
+      setUpi(u);
+      setStep('amount');
+      return;
+    }
+    setUpi(parsed);
+    if (parsed.am) { setAmount(parsed.am); setExpenseForm(f => ({ ...f, amount: parsed.am, description: `UPI to ${parsed.pn}` })); setStep('pay'); }
+    else setStep('amount');
+  };
 
   const submitAmount = () => {
     const v = parseFloat(amount);
@@ -202,7 +225,13 @@ export default function PayModal({ open, onClose }) {
           <button className="btn-outline w-full" onClick={() => { stopScanner(); setError(''); startScanner(); }}>
             <Camera size={16} /> Restart Camera
           </button>
-          <p className="text-xs text-slate-400 text-center">Point the camera at a UPI QR code (GPay, PhonePe, Paytm, etc.)</p>
+          <div className="w-full border-t border-slate-200 dark:border-slate-700 pt-3">
+            <p className="text-xs font-bold text-slate-500 mb-2">Or enter UPI ID manually</p>
+            <div className="flex gap-2">
+              <input className="input flex-1" placeholder="name@okhdfcbank" value={manualUpi} onChange={e => setManualUpi(e.target.value)} />
+              <button className="btn-primary" onClick={submitManualUpi}>Go</button>
+            </div>
+          </div>
         </div>
       )}
 
