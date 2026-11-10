@@ -13,4 +13,11 @@ import './index.css';
 //   if (window.console) { ['log', 'warn', 'info', 'debug'].forEach(m => { window.console[m] = () => {}; }); }
 // }
 
+// Register service worker for PWA installability (desktop shortcut with logo + name)
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(<React.StrictMode><App /></React.StrictMode>);

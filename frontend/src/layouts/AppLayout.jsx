@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+import useSEO from '../hooks/useSEO';
 import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
 import { useAuth } from '../context/AuthContext';
 
 export default function AppLayout() {
+  useSEO({ title: 'Dashboard', description: 'My Money dashboard — manage your finances.', robots: 'noindex, nofollow', canonical: '/app' });
   const [open, setOpen] = useState(false);
   const { user, logout } = useAuth();
   const location = useLocation();

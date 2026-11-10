@@ -5,8 +5,10 @@ import { ArrowRight, Loader2 } from 'lucide-react';
 import { authApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import logo from '../../logo/logo.png';
+import useSEO from '../../hooks/useSEO';
 
 export default function Register() {
+  useSEO({ title: 'Create Account', description: 'Create a free My Money account to start tracking income, expenses, budgets and goals.', robots: 'noindex, follow', canonical: '/register' });
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,7 +38,7 @@ export default function Register() {
       </div>
       <div className="flex items-center justify-center p-6 bg-[#F8F7FC] dark:bg-slate-950">
         <form onSubmit={submit} className="card w-full max-w-md p-8 shadow-premium">
-          <img src={logo} alt="My Money Logo" className="w-12 h-12 rounded-2xl object-cover mb-5 shadow-soft" />
+          <Link to="/"><img src={logo} alt="My Money Logo" className="w-12 h-12 rounded-2xl object-cover mb-5 shadow-soft" /></Link>
           <h2 className="text-2xl font-extrabold tracking-tight">Create account</h2><p className="text-sm text-slate-500 mt-1 mb-7">Get started with My Money — it is free</p>
           <label className="block text-xs font-bold mb-1.5">Full Name <span className="text-red-500">*</span></label>
           <input className="input mb-4" placeholder="Ex: Rohan Kumar" value={name} onChange={e => setName(e.target.value)} required />

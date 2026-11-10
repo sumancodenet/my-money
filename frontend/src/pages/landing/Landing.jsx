@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, Wallet, ShieldCheck, Zap, BarChart3, Repeat, Target, Bell, CheckCircle2 } from 'lucide-react';
 import logo from '../../logo/logo.png';
+import useSEO from '../../hooks/useSEO';
 
 const features = [
   { icon: Wallet, title: 'Multi-Bank Management', desc: 'SBI, HDFC, Axis, ICICI — unlimited banks with live ledger balances.' },
@@ -12,6 +13,22 @@ const features = [
 ];
 
 export default function Landing() {
+  useSEO({
+    title: 'Free Personal Finance Tracker',
+    description: 'My Money is a free personal finance app to manage banks, track income and expenses, transfer between accounts, set budgets and goals, and get beautiful reports. Made for India.',
+    keywords: 'personal finance, money manager, expense tracker, income tracker, budget app, bank management, financial goals, India',
+    canonical: '/',
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      name: 'My Money',
+      url: 'https://my-money-alpha-one.vercel.app',
+      description: 'Free personal finance tracker for income, expenses, budgets and goals.',
+      applicationCategory: 'FinanceApplication',
+      operatingSystem: 'Web',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR' },
+    },
+  });
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 overflow-x-hidden">
       {/* Nav */}
