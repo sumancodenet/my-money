@@ -11,31 +11,40 @@ import logo from '../../logo/logo.png';
 export { isAppLockEnabled, setAppLockEnabled, clearUnlock };
 
 export default function AppLock({ children }) {
-  const { user, setUser } = useAuth();
+  const { user, setUser, logout } = useAuth();
   const [supported, setSupported] = useState(false);
   const [enabled, setEnabled] = useState(isAppLockEnabled());
   const [unlocked, setUnlockedState] = useState(isUnlocked());
   const [loading, setLoading] = useState(false);
   const [creds, setCreds] = useState([]);
+  const [credsLoaded, setCredsLoaded] = useState(false);
 
   useEffect(() => { supportsBiometric().then(setSupported); }, []);
   useEffect(() => {
     if (!user) return;
-    webauthnApi.list().then(r => setCreds(r.data.data || [])).catch(() => {});
+    webauthnApi.list().then(r => { setCreds(r.data.data || []); setCredsLoaded(true); }).catch(() => setCredsLoaded(true));
   }, [user]);
 
-  // If no registered creds, disable lock
+  // If no registered creds, disable lock (only after load, to avoid race)
   useEffect(() => {
-    if (creds.length === 0 && enabled) {
+    if (credsLoaded && creds.length === 0 && enabled) {
       setAppLockEnabled(false);
       setEnabled(false);
       setUnlocked();
       setUnlockedState(true);
     }
-  }, [creds, enabled]);
+  }, [creds, credsLoaded, enabled]);
 
   const unlock = async () => {
     if (!user?.email) return;
+    if (credsLoaded && creds.length === 0) {
+      toast.error('No fingerprint registered on this device. Register one in Settings.');
+      setAppLockEnabled(false);
+      setEnabled(false);
+      setUnlocked();
+      setUnlockedState(true);
+      return;
+    }
     setLoading(true);
     try {
       const { data } = await webauthnApi.loginOptions(user.email);
@@ -71,7 +80,7 @@ export default function AppLock({ children }) {
         {loading ? <Loader2 size={20} className="loader-spin" /> : <Fingerprint size={20} />}
         {loading ? 'Verifying…' : 'Unlock with Fingerprint'}
       </button>
-      <p className="mt-6 text-xs text-slate-400">Or sign out and sign in again.</p>
+      <p className="mt-6 text-xs text-slate-400">Or <button onClick={logout} className="text-violet-600 font-bold hover:underline">sign out</button> and sign in again.</p>
     </div>
   );
 }

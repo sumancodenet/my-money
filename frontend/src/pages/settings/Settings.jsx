@@ -58,7 +58,32 @@ export default function Settings() {
           {creds.length > 0 && (
             <label className="mt-4 flex items-center justify-between text-sm font-semibold border-t border-slate-100 dark:border-slate-800 pt-4">
               <span className="flex items-center gap-2"><Fingerprint size={16} className="text-violet-600" /> Lock app on open (fingerprint)</span>
-              <input type="checkbox" className="h-4 w-4 accent-violet-600" checked={appLock} onChange={(e) => { setAppLock(e.target.checked); setAppLockEnabled(e.target.checked); }} />
+              <input type="checkbox" className="h-4 w-4 accent-violet-600" checked={appLock} onChange={async (e) => {
+                const v = e.target.checked;
+                if (!v) { setAppLock(false); setAppLockEnabled(false); return; }
+                if (creds.length === 0) {
+                  // No fingerprint yet — register one now using the phone's system biometric
+                  setRegistering(true);
+                  try {
+                    const { data } = await webauthnApi.registerOptions();
+                    const registration = await startRegistration({ optionsJSON: data.data });
+                    await webauthnApi.register({ ...registration, deviceName: navigator.platform || 'Device' });
+                    toast.success('Fingerprint registered!');
+                    await load();
+                    setAppLock(true);
+                    setAppLockEnabled(true);
+                  } catch (err) {
+                    toast.error(biometricErrorMessage(err, 'Fingerprint registration failed'));
+                    setAppLock(false);
+                    setAppLockEnabled(false);
+                  } finally {
+                    setRegistering(false);
+                  }
+                  return;
+                }
+                setAppLock(true);
+                setAppLockEnabled(true);
+              }} disabled={registering} />
             </label>
           )}
         </div></div>
