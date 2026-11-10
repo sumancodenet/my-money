@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler } from 'chart.js';
-import { Wallet, TrendingUp, TrendingDown, PiggyBank, Landmark, CalendarDays, CircleDollarSign, Coins, Plus, ArrowLeftRight, ArrowUpRight } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, PiggyBank, Landmark, CalendarDays, CircleDollarSign, Coins, Plus, ArrowLeftRight, ArrowUpRight, QrCode } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import StatCard from '../../components/common/StatCard';
 import DashboardSkeleton from '../../components/common/Skeleton';
+import PayModal from '../../components/common/PayModal';
 import { dashboardApi, txApi } from '../../services/api';
 import { inr, dateStr } from '../../utils/format';
 
@@ -15,6 +16,7 @@ export default function Dashboard() {
   const [series, setSeries] = useState([]);
   const [catData, setCatData] = useState([]);
   const [recent, setRecent] = useState([]);
+  const [payOpen, setPayOpen] = useState(false);
 
   useEffect(() => {
     dashboardApi.summary().then(r => setSummary(r.data.data)).catch(() => {});
@@ -37,7 +39,8 @@ export default function Dashboard() {
           <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             <Link to="/app/income" className="btn-outline flex-1 sm:flex-none text-[13px] px-3 py-2"><ArrowUpRight size={15} /> Income</Link>
             <Link to="/app/expenses" className="btn-outline flex-1 sm:flex-none text-[13px] px-3 py-2"><ArrowLeftRight size={15} /> Expense</Link>
-            <Link to="/app/accounts" className="btn-primary flex-1 sm:flex-none text-[13px] px-3 py-2"><Plus size={15} /> Add Account</Link>
+            <button onClick={() => setPayOpen(true)} className="btn-primary flex-1 sm:flex-none text-[13px] px-3 py-2"><QrCode size={15} /> Pay</button>
+            <Link to="/app/accounts" className="btn-outline flex-1 sm:flex-none text-[13px] px-3 py-2"><Plus size={15} /> Add Account</Link>
           </div>
         </div>
       </div>
@@ -104,6 +107,7 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      <PayModal open={payOpen} onClose={() => setPayOpen(false)} />
     </div>
   );
 }
