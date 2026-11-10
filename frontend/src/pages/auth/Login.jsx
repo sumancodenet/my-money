@@ -12,8 +12,8 @@ import useSEO from '../../hooks/useSEO';
 
 export default function Login() {
   useSEO({ title: 'Sign In', description: 'Sign in to My Money to manage your finances, banks, budgets and goals.', robots: 'noindex, follow', canonical: '/login' });
-  const [email, setEmail] = useState('admin@gmail.com');
-  const [password, setPassword] = useState('Asdf1234');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [fpLoading, setFpLoading] = useState(false);
   const [fpSupported, setFpSupported] = useState(false);
